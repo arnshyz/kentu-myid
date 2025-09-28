@@ -69,23 +69,11 @@ function Header({ onOpenCart, user, onOpenAccount }) {
             alt="KENTU"
             className="w-8 h-8 rounded-xl object-contain"
           />
-          <span className="font-semibold tracking-wide">KENTU</span>
-          {user && (
-            <span className="ml-3 text-xs rounded-full border px-2 py-0.5">
-              {user.tierLabel}
-            </span>
-          )}
         </div>
         <nav className="hidden md:flex items-center gap-6 text-sm text-neutral-700">
-          <a href="#produk" className="hover:text-black">
-            Katalog Produk
-          </a>
-          <a href="#membership" className="hover:text-black">
-            Membership
-          </a>
-          <a href="#kontak" className="hover:text-black">
-            Kontak
-          </a>
+          <a href="#produk" className="hover:text-black">Katalog Produk</a>
+          <a href="#membership" className="hover:text-black">Membership</a>
+          <a href="#kontak" className="hover:text-black">Kontak</a>
         </nav>
         <div className="flex items-center gap-2">
           <button
@@ -94,6 +82,9 @@ function Header({ onOpenCart, user, onOpenAccount }) {
           >
             {user ? user.name.split(' ')[0] : 'Masuk'}
           </button>
+          <span className="rounded-full border px-2 py-0.5 text-xs">
+            {user?.tierLabel || 'Guest'}
+          </span>
           <button
             onClick={onOpenCart}
             className="rounded-2xl border px-3 py-1.5 text-sm hover:shadow"
@@ -147,38 +138,60 @@ function ProductCard({ p, onAdd, memberDiscount }) {
   );
 }
 
-/* ---------------- Account Modal (FIXED) ---------------- */
+/* ---------------- Account Modal (membership locked) ---------------- */
 function AccountModal({ open, onClose, user, onSave, onLogout }) {
-  // <-- FIX: kalau tidak open, jangan render apa-apa
   if (!open) return null;
 
   const [name, setName] = React.useState(user?.name || '');
   const [email, setEmail] = React.useState(user?.email || '');
   const [phone, setPhone] = React.useState(user?.phone || '');
-  const [tier, setTier] = React.useState(user?.tier || 'GUEST');
   const [otpToken, setOtpToken] = React.useState('');
   const [otpCode, setOtpCode] = React.useState('');
   const [sending, setSending] = React.useState(false);
   const [verifying, setVerifying] = React.useState(false);
-  const [verified, setVerified] = React.useState(false);
+  const [verified, setVerified] = React.useState(!!user?.verified);
 
   React.useEffect(() => {
     setName(user?.name || '');
     setEmail(user?.email || '');
     setPhone(user?.phone || '');
-    setTier(user?.tier || 'GUEST');
     setVerified(!!user?.verified);
-  }, [open]); // reset setiap buka modal
+  }, [open]);
 
-  // Tutup pakai ESC
+  // ESC to close
   React.useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // OPTIONAL: fetch tier from server (ensures correct tier display)
+  React.useEffect(() => {
+    if (!email) return;
+    (async () => {
+      try {
+        const r = await fetch('/api/member-get', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        const data = await r.json();
+        if (data?.member?.tier) {
+          onSave({
+            name,
+            email,
+            phone,
+            verified,
+            // tier locked from server
+          });
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line
+  }, [email]);
+
   const requestOTP = async (channel) => {
-    setSending(true); // <-- FIX typo
+    setSending(true);
     try {
       const body =
         channel === 'whatsapp' ? { channel, to: phone } : { channel: 'email', to: email };
@@ -216,6 +229,8 @@ function AccountModal({ open, onClose, user, onSave, onLogout }) {
       setVerifying(false);
     }
   };
+
+  const lockedTier = user?.tier || 'GUEST';
 
   return (
     <div className="fixed inset-0 z-50">
@@ -259,19 +274,14 @@ function AccountModal({ open, onClose, user, onSave, onLogout }) {
             />
           </label>
 
-          <label className="block">
-            Tier
-            <select
-              value={tier}
-              onChange={(e) => setTier(e.target.value)}
-              className="mt-1 w-full rounded-2xl border px-3 py-2"
-            >
-              <option value="GUEST">Guest</option>
-              <option value="SILVER">Silver</option>
-              <option value="GOLD">Gold</option>
-              <option value="PLATINUM">Platinum</option>
-            </select>
-          </label>
+          {/* Tier: read-only */}
+          <div className="block">
+            <div className="text-[13px] text-neutral-600 mb-1">Tier</div>
+            <div className="w-full rounded-2xl border px-3 py-2 bg-neutral-100">
+              {lockedTier}
+              <span className="ml-2 text-xs text-neutral-500">(hubungi admin untuk upgrade)</span>
+            </div>
+          </div>
 
           <div className="rounded-2xl border p-3">
             <div className="font-medium mb-2">Verifikasi OTP</div>
@@ -311,7 +321,7 @@ function AccountModal({ open, onClose, user, onSave, onLogout }) {
 
           <div className="flex items-center gap-2 pt-2">
             <button
-              onClick={() => onSave({ name, email, phone, tier, verified })}
+              onClick={() => onSave({ name, email, phone, verified })}
               className="rounded-2xl bg-neutral-900 text-white px-4 py-2"
             >
               Simpan
@@ -578,9 +588,7 @@ function AdminPanel() {
                     <td className="p-2 border">{m.name || '-'}</td>
                     <td className="p-2 border">{m.email || '-'}</td>
                     <td className="p-2 border">{m.tier || 'GUEST'}</td>
-                    <td className="p-2 border">
-                      {m.verified ? 'Yes' : 'No'}
-                    </td>
+                    <td className="p-2 border">{m.verified ? 'Yes' : 'No'}</td>
                     <td className="p-2 border">
                       <div className="flex gap-1">
                         <button
@@ -698,15 +706,18 @@ function App() {
   const dec = (id) =>
     setCart((prev) =>
       prev.map((i) =>
-        i.id === id ? { ...i, qty: Math.max(i.qty - 1, 1) } : i
+        i.id === id ? { ...i, qty: Math.max(i.qty - 1, 1)} : i
       )
     );
   const remove = (id) => setCart((prev) => prev.filter((i) => i.id !== id));
 
   const checkout = async () => {
-    const subtotal = cart.reduce((s, it) => s + it.price * it.qty, 0);
-    const discount = Math.round(subtotal * (memberDiscount || 0));
-    const total = subtotal - discount;
+    const items = cart.map((it) => ({
+      id: it.id,
+      name: it.name,
+      qty: it.qty,
+      price: it.price,
+    }));
     const orderId = 'KENTU-' + Date.now();
     try {
       const r = await fetch('/api/midtrans-create', {
@@ -714,7 +725,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId,
-          amount: total,
+          items, // kirim detail, bukan total
           customer: {
             first_name: user?.name,
             email: user?.email,
@@ -738,14 +749,8 @@ function App() {
         body: JSON.stringify({
           event: 'ORDER_CREATED',
           orderId,
-          total,
-          discount,
-          items: cart.map((it) => ({
-            id: it.id,
-            name: it.name,
-            qty: it.qty,
-            price: it.price,
-          })),
+          total: cart.reduce((s, it) => s + it.price * it.qty, 0), // info awal
+          items,
           user: {
             name: user?.name,
             email: user?.email,
@@ -761,14 +766,15 @@ function App() {
     }
   };
 
-  const saveAccount = ({ name, email, phone, tier, verified }) => {
+  const saveAccount = ({ name, email, phone, verified }) => {
+    const lockedTier = user?.tier || 'GUEST';
     setUser({
       name,
       email,
       phone,
-      tier,
+      tier: lockedTier,
       verified,
-      tierLabel: TIER_LABEL[tier] || 'Guest',
+      tierLabel: TIER_LABEL[lockedTier] || 'Guest',
     });
     setAccountOpen(false);
   };
@@ -817,7 +823,7 @@ function App() {
               key={p.id}
               p={p}
               onAdd={addToCart}
-              memberDiscount={memberDiscount}
+              memberDiscount={TIERS_META[user?.tier || 'GUEST'] || 0}
             />
           ))}
         </div>
@@ -838,12 +844,14 @@ function App() {
         <section className="mt-6 rounded-3xl border p-6">
           <h3 className="text-lg font-semibold mb-2">Checkout</h3>
           <div className="text-sm text-neutral-700">
-            Subtotal: {currency(cart.reduce((s, it) => s + it.price * it.qty, 0))} — Diskon member:{' '}
+            Subtotal: {currency(cart.reduce((s, it) => s + it.price * it.qty, 0))}{' '}
+            — Diskon member (estimasi):{' '}
             {currency(
               Math.round(
-                cart.reduce((s, it) => s + it.price * it.qty, 0) * (memberDiscount || 0)
+                cart.reduce((s, it) => s + it.price * it.qty, 0) *
+                  (TIERS_META[user?.tier || 'GUEST'] || 0)
               )
-            )}{' '}
+            )}
           </div>
           <div className="flex gap-2 mt-3">
             <button
@@ -882,16 +890,8 @@ function App() {
           <div>
             <div className="font-semibold mb-2">Info</div>
             <ul className="space-y-1">
-              <li>
-                <a href="#membership" className="hover:underline">
-                  Membership
-                </a>
-              </li>
-              <li>
-                <a href="#produk" className="hover:underline">
-                  Katalog
-                </a>
-              </li>
+              <li><a href="#membership" className="hover:underline">Membership</a></li>
+              <li><a href="#produk" className="hover:underline">Katalog</a></li>
             </ul>
           </div>
         </div>
@@ -900,7 +900,6 @@ function App() {
         </div>
       </footer>
 
-      {/* Modal Akun */}
       <AccountModal
         open={accountOpen}
         onClose={() => setAccountOpen(false)}
