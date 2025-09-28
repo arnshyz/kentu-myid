@@ -1,3 +1,10 @@
+import BackgroundParticles from "./components/BackgroundParticles";
+// ...
+<div className="min-h-screen relative">
+  <BackgroundParticles count={70} />
+  {/* konten laman… */}
+</div>
+
 import React from 'react';
 
 const currency = (n) =>
