@@ -264,7 +264,7 @@ export default function App() {
   const handleCheckout = () => {
     const rows = cart.map((it, idx) => `${idx+1}. ${it.name} x ${it.qty} = ${currency(it.price*it.qty)}`).join("%0A");
     const text = `Halo KENTU,%0ASaya ingin memesan:%0A${rows}%0A%0ATotal: ${currency(total)}%0A%0ANama:%0AAlamat:%0AMetode Bayar: Transfer/COD`;
-    const phone = "62812xxxxxxx"; // ganti ke nomor WA admin tanpa +
+    const phone = "6282213316764"; // ganti ke nomor WA admin tanpa +
     const waUrl = `https://wa.me/${phone}?text=${text}`;
     window.open(waUrl, "_blank");
   };
