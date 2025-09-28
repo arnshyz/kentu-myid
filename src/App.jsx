@@ -1,9 +1,4 @@
 import BackgroundParticles from "./components/BackgroundParticles";
-// ...
-<div className="min-h-screen relative">
-  <BackgroundParticles count={70} />
-  {/* konten laman… */}
-</div>
 
 import React from 'react';
 
@@ -844,6 +839,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
+      <BackgroundParticles count={70} />
       <Header
         onOpenCart={() => setCartOpen(true)}
         user={user}
