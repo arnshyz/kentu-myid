@@ -158,6 +158,62 @@ function AccountModal({ open, onClose, user, onSave, onLogout }) {
     setVerified(!!user?.verified);
   }, [open]);
 
+// CartDrawer
+  function CartDrawer({ open, onClose, items, inc, dec, remove, onCheckout }) {
+  if (!open) return null;
+  const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="absolute right-0 top-0 h-full w-[92%] max-w-md bg-white border-l rounded-l-3xl shadow-xl p-5 overflow-y-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Keranjang</h3>
+          <button onClick={onClose} className="rounded-xl border px-3 py-1.5 text-sm">Tutup</button>
+        </div>
+
+        {items.length === 0 ? (
+          <div className="text-sm text-neutral-600">Keranjang masih kosong.</div>
+        ) : (
+          <div className="space-y-3">
+            {items.map((it) => (
+              <div key={it.id} className="flex gap-3 items-center border rounded-2xl p-3">
+                <img src={it.image} alt={it.name} className="w-14 h-14 rounded-xl object-cover" />
+                <div className="flex-1">
+                  <div className="font-medium">{it.name}</div>
+                  <div className="text-xs text-neutral-500">{it.category}</div>
+                  <div className="text-sm mt-1">Rp {it.price.toLocaleString('id-ID')}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button onClick={() => dec(it.id)} className="rounded-lg border px-2">-</button>
+                    <span className="w-8 text-center">{it.qty}</span>
+                    <button onClick={() => inc(it.id)} className="rounded-lg border px-2">+</button>
+                    <button onClick={() => remove(it.id)} className="ml-2 text-xs text-red-600 hover:underline">Hapus</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-4 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-neutral-700">Subtotal</span>
+            <span className="font-semibold">{new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 }).format(subtotal)}</span>
+          </div>
+          <button
+            onClick={onCheckout}
+            disabled={!items.length}
+            className="mt-3 w-full rounded-2xl bg-neutral-900 text-white px-4 py-2 text-sm disabled:opacity-50"
+          >
+            Bayar via Midtrans
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+  
   // ESC to close
   React.useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose();
