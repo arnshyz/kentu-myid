@@ -204,7 +204,7 @@ function AccountModal({ open, onClose, user, onSave, onLogout }) {
       if (data.ok) {
         setOtpToken(data.token);
         alert(
-          'Kode OTP dikirim. (Demo: jika provider belum di-set, token dibuat tapi pengiriman dilewati)'
+          'Kode OTP dikirim. Cek Email / WA Kamu'
         );
       } else alert('Gagal kirim OTP');
     } finally {
